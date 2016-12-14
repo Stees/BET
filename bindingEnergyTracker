@@ -1,0 +1,127 @@
+#! /usr/bin/env python
+#code will determine the greatest interaction energy for each molecule calculation pair, and provide a convenient view of final and initial positions for the optimization
+
+import os
+import subprocess
+import readline
+import shutil
+from re import sub
+import time
+from collections import defaultdict
+from decimal import *
+
+#set decimal context
+getcontext().prec = 14
+
+#determine who the user is
+user = subprocess.Popen(r'whoami', stdout=subprocess.PIPE)
+name = str(user.communicate()[0].split()).replace("['","").replace("']","")
+
+if name == 'jpr54':
+    trajectoryLocation = '/ihome/kjohnson/jpr54/orca/geometryOptimizations/bestInteractionTrajectories/'
+elif name == 'krb115':
+    trajectoryLocation = '/ihome/kjohnson/krb115/orca/bestInteractionTrajectories/'
+#identify all the energies of the single molecules
+sStructures = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=r'/ihome/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/')
+sub1Structures = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=r'/ihome/kjohnson/krb115/orca/singleMolecules/')
+singleMolecules1 = sStructures.communicate()[0].split()
+singleMolecules2 = sub1Structures.communicate()[0].split()
+d = defaultdict(list)
+
+#create array to hold energies of single molecules.
+#get the energies of all the single molecules, store them in the dictionary in position corresponding to name
+for counter, structure in enumerate(singleMolecules1 + singleMolecules2):
+    if structure.lower() not in d.keys():
+        k = structure.lower()
+        if structure in singleMolecules1:
+            location = '/ihome/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/' + structure + '/'
+        elif structure in singleMolecules2:
+            location = '/ihome/kjohnson/krb115/orca/singleMolecules/' + structure + '/'
+        files = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=location)
+        fileNames = files.communicate()[0].split()
+        #next line will only show calculations that have finished running
+        if "geometryOptimizationOrca.out" in fileNames and "tmp" not in fileNames:
+            additionalCycles = subprocess.Popen(r'grep "The optimization did not converge but reached the maximum number of" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=location, shell=True)
+            cycleFlag = additionalCycles.communicate()[0]
+            calcSuccess = subprocess.Popen(r'grep "OPTIMIZATION RUN DONE" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=location, shell=True)
+            calcFlag = calcSuccess.communicate()[0]
+            #next line will make sure that calculation did not run out of geometry optimization steps
+            if "The optimization did not converge" in str(cycleFlag):
+                print('\n\n\n*****Optimization needs more steps*****\n{0}\n\n\n'.format(location))
+            #make sure the success message is present in the file
+            elif "OPTIMIZATION" in str(calcFlag):
+                #print('{0}'.format(calcFlag))
+                getEnergy = subprocess.Popen(r'grep "FINAL SINGLE POINT ENERGY" geometryOptimizationOrca.out | tail -n 1', stdout=subprocess.PIPE, cwd=location, shell=True)
+                #print('{0}'.format(k))
+                v = Decimal(getEnergy.communicate()[0].split()[4])
+                #print('{0}'.format(v))
+                d[k].append(v)
+            else:
+                print('\n\n\n*****Walltime likely exceeded*****\n{0}\n\n\n'.format(location))
+
+#print('{0}'.format(d))
+
+
+#get the names of the interaction configurations
+iStructures = subprocess.Popen(r'ls *_* -d', stdout=subprocess.PIPE, cwd=r'/ihome/kjohnson/jpr54/orca/geometryOptimizations/interactions/', shell=True)
+subIStructures = subprocess.Popen(r'ls *_* -d', stdout=subprocess.PIPE, cwd=r'/ihome/kjohnson/krb115/orca/multipleMolecules/', shell=True)
+interactions1 = iStructures.communicate()[0].split()
+interactions2 = subIStructures.communicate()[0].split()
+
+#print('\n{0}'.format(interactions2))
+
+#make another dictionary for the interaction calculation energies
+d2 = defaultdict(list)
+
+#get the most negative for each interaction
+for iStruct in (interactions1 + interactions2):
+    if iStruct.lower() not in d2.keys():
+        k = iStruct
+        if iStruct in interactions1:
+            outerLocation = '/ihome/kjohnson/jpr54/orca/geometryOptimizations/interactions/' + iStruct + '/'
+        elif iStruct in interactions2:
+            outerLocation = '/ihome/kjohnson/krb115/orca/multipleMolecules/' + iStruct + '/'
+        #ls the number directories for each interaction pair
+        nums = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=outerLocation)
+        numbers = nums.communicate()[0].split()
+        #print('{0}'.format(numbers))
+        #find the mimimum for each calculation
+        minimum = 0
+        for number in numbers:
+            innerLocation = outerLocation + str(number) + '/'
+            files2 = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=innerLocation)
+            fileNames2 = files2.communicate()[0].split()
+            #print('\n\n{0}\n'.format(fileNames2))
+            if "geometryOptimizationOrca.out" in fileNames2 and "tmp" not in fileNames2:
+                additionalCycles2 = subprocess.Popen(r'grep "The optimization did not converge but reached the maximum number of" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+                cycleFlag2 = additionalCycles2.communicate()[0]
+                calcSuccess2 = subprocess.Popen(r'grep "OPTIMIZATION RUN DONE" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+                calcFlag2 = calcSuccess2.communicate()[0]
+                if "The optimization did not converge" in str(cycleFlag2):
+                    print('\n\n\n*****Optimization needs more steps*****\n{0}\n\n\n'.format(innerLocation))
+                elif "OPTIMIZATION" in str(calcFlag2):
+                    getEnergy = subprocess.Popen(r'grep "FINAL SINGLE POINT ENERGY" geometryOptimizationOrca.out | tail -n 1', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+                    v = Decimal(getEnergy.communicate()[0].split()[4])
+                    #print('{0}'.format(v))
+                    trajectoryMoveLocation = trajectoryLocation+iStruct+'OptimumTrajectory.xyz'
+                    if v < minimum:
+                        minimum = v
+                        copyTrajectory = subprocess.Popen(r'cp -f geometryOptimizationOrca.trj {0}'.format(trajectoryMoveLocation), stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+                else:
+                    print('\n\n\n*****Walltime likely exceeded*****\n{0}\n\n\n'.format(innerLocation))
+        #print('{0}'.format(minimum))
+        d2[k].append(minimum)
+
+#calculate the interaction energies
+#dictionary for the binding energies
+d3 = defaultdict(Decimal)
+#for each key in d2, split the key at the underscore.
+for key in d2:
+    singleMols = key.split("_")
+    print('\n{0}'.format(singleMols))
+    energy1 = d.get(singleMols[0].lower())
+    energy2 = d.get(singleMols[1].lower())
+    interE = d2.get(key)
+    #2625.5 is conversion factor between hartree and kJ/mol
+    bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
+    print('{0} kJ/mol'.format(bindingEnergy))
