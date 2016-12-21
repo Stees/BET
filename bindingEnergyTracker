@@ -21,6 +21,10 @@ if name == 'jpr54':
     trajectoryLocation = '/ihome/kjohnson/jpr54/orca/geometryOptimizations/bestInteractionTrajectories/'
 elif name == 'krb115':
     trajectoryLocation = '/ihome/kjohnson/krb115/orca/bestInteractionTrajectories/'
+
+#figure out what is running in the queue
+#currentJobs = subprocess.Popen(r'qstat -n one_day -u {0} 
+
 #identify all the energies of the single molecules
 sStructures = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=r'/ihome/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/')
 sub1Structures = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=r'/ihome/kjohnson/krb115/orca/singleMolecules/')
@@ -39,8 +43,8 @@ for counter, structure in enumerate(singleMolecules1 + singleMolecules2):
             location = '/ihome/kjohnson/krb115/orca/singleMolecules/' + structure + '/'
         files = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=location)
         fileNames = files.communicate()[0].split()
-        #next line will only show calculations that have finished running
-        if "geometryOptimizationOrca.out" in fileNames and "tmp" not in fileNames:
+        #next line will only show calculations that have finished running: not true
+        if "geometryOptimizationOrca.out" in fileNames:
             additionalCycles = subprocess.Popen(r'grep "The optimization did not converge but reached the maximum number of" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=location, shell=True)
             cycleFlag = additionalCycles.communicate()[0]
             calcSuccess = subprocess.Popen(r'grep "OPTIMIZATION RUN DONE" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=location, shell=True)
@@ -92,7 +96,7 @@ for iStruct in (interactions1 + interactions2):
             files2 = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=innerLocation)
             fileNames2 = files2.communicate()[0].split()
             #print('\n\n{0}\n'.format(fileNames2))
-            if "geometryOptimizationOrca.out" in fileNames2 and "tmp" not in fileNames2:
+            if "geometryOptimizationOrca.out" in fileNames2:
                 additionalCycles2 = subprocess.Popen(r'grep "The optimization did not converge but reached the maximum number of" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                 cycleFlag2 = additionalCycles2.communicate()[0]
                 calcSuccess2 = subprocess.Popen(r'grep "OPTIMIZATION RUN DONE" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
