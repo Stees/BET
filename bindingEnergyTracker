@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 #code will determine the greatest interaction energy for each molecule calculation pair, and provide a convenient view of final and initial positions for the optimization
 
-import os
+#import os
 import subprocess
 import readline
 import shutil
@@ -22,8 +22,9 @@ if name == 'jpr54':
 elif name == 'krb115':
     trajectoryLocation = '/ihome/kjohnson/krb115/orca/bestInteractionTrajectories/'
 
-#figure out what is running in the queue
-#currentJobs = subprocess.Popen(r'qstat -n one_day -u {0} 
+#figure out what is in the queue
+currentJobs = subprocess.Popen(r'qstat -n one_day -u jpr54 | grep "one_day" | cut -d. -f 1', stdout=subprocess.PIPE, shell=True)
+activeJobs = currentJobs.communicate()[0].split()
 
 #identify all the energies of the single molecules
 sStructures = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=r'/ihome/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/')
@@ -51,38 +52,46 @@ for counter, structure in enumerate(singleMolecules1 + singleMolecules2):
             calcFlag = calcSuccess.communicate()[0]
             #next line will make sure that calculation did not run out of geometry optimization steps
             if "The optimization did not converge" in str(cycleFlag):
-                print('\n\n\n*****Optimization needs more steps*****\n{0}\n'.format(location))
-                #restart the calculation. First, move the gbw file and the coordinate file
-                wavefunctionMove = subprocess.Popen(r'mv geometryOptimizationOrca.gbw geometryOptimizationOrcaOLD.gbw', cwd=location, shell=True)
-                structureMove = subprocess.Popen(r'mv geometryOptimizationOrca.xyz {0}.xyz'.format(structure.replace('c',',')), cwd=location, shell=True)
-                #now, modify the .inp file! Read all the lines of input file
-                optfile = open('{0}geometryOptimizationOrca.inp'.format(location), 'r')
-                lines = optfile.readlines()
-                optfile.close()
-                newopt = open('{0}geometryOptimizationOrca.inp'.format(location), 'w')
-                newopt.write('#give keywords by using !\n')
-                newopt.write('#functional, number of basis sets, dispersion correction\n')
-                newopt.write('! PBE Def2-TZVP TIGHTSCF OPT D3BJ MORead\n')
-                newopt.write('%moinp "geometryOptimizationOrcaOLD.gbw"\n')
-                newopt.write('#the numbers after xyzfile correspond to charge and multiplicity\n')
-                newopt.write('{0}'.format(lines[-1]))
-                newopt.close()
-                job = subprocess.Popen('qsub job.pbs', stdout=subprocess.PIPE, cwd=location, shell=True)
-                print('{0} {1}'.format(str(job.communicate()[0].split()).rsplit('.')[0].replace("['",""),structure))
+                #check if the calculation is idled in the queue
+                getNumber = subprocess.Popen('cat JobId', stdout=subprocess.PIPE, cwd=location, shell=True)
+                tempNumber = getNumber.communicate()[0]
+                if tempNumber not in activeJobs:
+                    print('\n\n\n*****Optimization needs more steps*****\n{0}\n'.format(location))
+                    #restart the calculation. First, move the gbw file and the coordinate file
+                    wavefunctionMove = subprocess.Popen(r'mv geometryOptimizationOrca.gbw geometryOptimizationOrcaOLD.gbw', cwd=location, shell=True)
+                    structureMove = subprocess.Popen(r'mv geometryOptimizationOrca.xyz {0}.xyz'.format(structure.replace('c',',')), cwd=location, shell=True)
+                    #now, modify the .inp file! Read all the lines of input file
+                    optfile = open('{0}geometryOptimizationOrca.inp'.format(location), 'r')
+                    lines = optfile.readlines()
+                    optfile.close()
+                    newopt = open('{0}geometryOptimizationOrca.inp'.format(location), 'w')
+                    newopt.write('#give keywords by using !\n')
+                    newopt.write('#functional, number of basis sets, dispersion correction\n')
+                    newopt.write('! PBE Def2-TZVP TIGHTSCF OPT D3BJ MORead\n')
+                    newopt.write('%moinp "geometryOptimizationOrcaOLD.gbw"\n')
+                    newopt.write('#the numbers after xyzfile correspond to charge and multiplicity\n')
+                    newopt.write('{0}'.format(lines[-1]))
+                    newopt.close()
+                    job = subprocess.Popen('qsub job.pbs', stdout=subprocess.PIPE, cwd=location, shell=True)
+                    #get the job number so it can be added to the JobId file
+                    jobNumber = str(job.communicate()[0].split()).rsplit('.')[0].replace("['","")
+                    print('{0} {1}'.format(jobNumber,structure))
+                    #append the job number into the file
+                    jobFile = open('{0}JobId'.format(location), 'w')
+                    jobFile.write('{0}'.format(jobNumber))
+                    jobFile.close()
                 
                 
             #make sure the success message is present in the file
             elif "OPTIMIZATION" in str(calcFlag):
-                #print('{0}'.format(calcFlag))
                 getEnergy = subprocess.Popen(r'grep "FINAL SINGLE POINT ENERGY" geometryOptimizationOrca.out | tail -n 1', stdout=subprocess.PIPE, cwd=location, shell=True)
-                #print('{0}'.format(k))
                 v = Decimal(getEnergy.communicate()[0].split()[4])
-                #print('{0}'.format(v))
                 d[k].append(v)
             else:
-                print('\n\n\n*****Walltime likely exceeded*****\n{0}\n\n\n'.format(location))
-
-#print('{0}'.format(d))
+                getNumber = subprocess.Popen('cat JobId', stdout=subprocess.PIPE, cwd=location, shell=True)
+                tempNumber = getNumber.communicate()[0]
+                if tempNumber not in activeJobs:
+                    print('\n\n\n*****Walltime likely exceeded*****\n{0}\n\n\n'.format(location))
 
 
 #get the names of the interaction configurations
@@ -90,8 +99,6 @@ iStructures = subprocess.Popen(r'ls *_* -d', stdout=subprocess.PIPE, cwd=r'/ihom
 subIStructures = subprocess.Popen(r'ls *_* -d', stdout=subprocess.PIPE, cwd=r'/ihome/kjohnson/krb115/orca/multipleMolecules/', shell=True)
 interactions1 = iStructures.communicate()[0].split()
 interactions2 = subIStructures.communicate()[0].split()
-
-#print('\n{0}'.format(interactions2))
 
 #make another dictionary for the interaction calculation energies
 d2 = defaultdict(list)
@@ -122,28 +129,38 @@ for iStruct in (interactions1 + interactions2):
                 calcSuccess2 = subprocess.Popen(r'grep "OPTIMIZATION RUN DONE" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                 calcFlag2 = calcSuccess2.communicate()[0]
                 if "The optimization did not converge" in str(cycleFlag2):
-                    print('\n\n\n*****Optimization needs more steps*****\n{0}\n'.format(innerLocation))
-                    #determine if the calculation is in the user's directory, or a different user.
-                    if (iStruct in interactions1 and name == 'jpr54'):
-                        #restart the calculation. First, move the gbw file and the coordinate file
-                        wavefunctionMove = subprocess.Popen(r'mv geometryOptimizationOrca.gbw geometryOptimizationOrcaOLD.gbw', cwd=innerLocation, shell=True)
-                        #the name of the structure file should be...
-                        structureFileName = iStruct + '_' + str(number)
-                        structureMove = subprocess.Popen(r'mv geometryOptimizationOrca.xyz {0}.xyz'.format(structureFileName.replace('c',',')), cwd=innerLocation, shell=True)
-                        #now, modify the .inp file! Read all the lines of input file
-                        optfile = open('{0}geometryOptimizationOrca.inp'.format(innerLocation), 'r')
-                        lines = optfile.readlines()
-                        optfile.close()
-                        newopt = open('{0}geometryOptimizationOrca.inp'.format(innerLocation), 'w')
-                        newopt.write('#give keywords by using !\n')
-                        newopt.write('#functional, number of basis sets, dispersion correction\n')
-                        newopt.write('! PBE Def2-TZVP TIGHTSCF OPT D3BJ MORead\n')
-                        newopt.write('%moinp "geometryOptimizationOrcaOLD.gbw"\n')
-                        newopt.write('#the numbers after xyzfile correspond to charge and multiplicity\n')
-                        newopt.write('{0}'.format(lines[-1]))
-                        newopt.close()
-                        job = subprocess.Popen('qsub job.pbs', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
-                        print('{0} {1}'.format(str(job.communicate()[0].split()).rsplit('.')[0].replace("['",""),structureFileName))
+                    getNumber = subprocess.Popen('cat JobId', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+                    tempNumber = getNumber.communicate()[0]
+                    if tempNumber not in activeJobs:
+                        print('\n\n\n*****Optimization needs more steps*****\n{0}\n'.format(innerLocation))
+                        #determine if the calculation is in the user's directory, or a different user.
+                        if (iStruct in interactions1 and name == 'jpr54'):
+                            #restart the calculation. First, move the gbw file and the coordinate file
+                            wavefunctionMove = subprocess.Popen(r'mv geometryOptimizationOrca.gbw geometryOptimizationOrcaOLD.gbw', cwd=innerLocation, shell=True)
+                            #the name of the structure file should be...
+                            structureFileName = iStruct + '_' + str(number)
+                            structureMove = subprocess.Popen(r'mv geometryOptimizationOrca.xyz {0}.xyz'.format(structureFileName.replace('c',',')), cwd=innerLocation, shell=True)
+                            #now, modify the .inp file! Read all the lines of input file
+                            optfile = open('{0}geometryOptimizationOrca.inp'.format(innerLocation), 'r')
+                            lines = optfile.readlines()
+                            optfile.close()
+                            newopt = open('{0}geometryOptimizationOrca.inp'.format(innerLocation), 'w')
+                            newopt.write('#give keywords by using !\n')
+                            newopt.write('#functional, number of basis sets, dispersion correction\n')
+                            newopt.write('! PBE Def2-TZVP TIGHTSCF OPT D3BJ MORead\n')
+                            newopt.write('%moinp "geometryOptimizationOrcaOLD.gbw"\n')
+                            newopt.write('#the numbers after xyzfile correspond to charge and multiplicity\n')
+                            newopt.write('{0}'.format(lines[-1]))
+                            newopt.close()
+                            job = subprocess.Popen('qsub job.pbs', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+
+                            #get the job number so it can be added to the JobId file
+                            jobNumber = str(job.communicate()[0].split()).rsplit('.')[0].replace("['","")
+                            print('{0} {1}'.format(jobNumber,structureFileName))
+                            #append the job number into the file so it can be compared to what is running in the queue
+                            jobFile = open('{0}JobId'.format(innerLocation), 'w')
+                            jobFile.write('{0}'.format(jobNumber))
+                            jobFile.close()
                 
                 elif "OPTIMIZATION" in str(calcFlag2):
                     getEnergy = subprocess.Popen(r'grep "FINAL SINGLE POINT ENERGY" geometryOptimizationOrca.out | tail -n 1', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
@@ -155,23 +172,48 @@ for iStruct in (interactions1 + interactions2):
                         index = number
                         copyTrajectory = subprocess.Popen(r'cp -f geometryOptimizationOrca.trj {0}'.format(trajectoryMoveLocation), stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                 else:
-                    print('\n\n\n*****Walltime likely exceeded*****\n{0}\n\n\n'.format(innerLocation))
-        #print('{0}'.format(minimum))
+                    getNumber = subprocess.Popen('cat JobId', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+                    tempNumber = getNumber.communicate()[0]
+                    if tempNumber not in activeJobs:
+                        print('\n\n\n*****Walltime likely exceeded*****\n{0}\n\n\n'.format(innerLocation))
         d2[k].append(minimum)
         d2[k].append(index)
 
 #calculate the interaction energies
-#dictionary for the binding energies
 
 #allow for selection of only specific analyte to print
+filter = 3
+while (filter != 1 and filter != 2):
+    if (filter != 3):
+        print('\nLikely invalid entry. Try again.\n\n')
+    filter = int(raw_input('To print energies for all pairs, type 1.\nTo filter data, type 2.\n\n'))
+    if (filter == 1):
+        #for each key in d2, split the key at the underscore.
+        for key in d2:
+            singleMols = key.split("_")
+            energy1 = d.get(singleMols[0].lower())
+            energy2 = d.get(singleMols[1].lower())
+            interE = d2.get(key)
+            print('\n{0}, configuration {1}'.format(singleMols,interE[1]))
+            #2625.5 is conversion factor between hartree and kJ/mol
+            bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
+            print('{0} kJ/mol'.format(bindingEnergy))
+    elif (filter == 2):
+        agent = 'apple'
+        while (agent != 'owl'):
+            if (agent != 'apple'):
+                print('\nLikely invalid entry. Try again.\n\n')
+            agent = raw_input('Enter the name of an agent.\n')
+            for key in d2:
+                if agent in key:
+                    singleMols = key.split("_")
+                    energy1 = d.get(singleMols[0].lower())
+                    energy2 = d.get(singleMols[1].lower())
+                    interE = d2.get(key)
+                    print('\n{0}, configuration {1}'.format(singleMols,interE[1]))
+                    #2625.5 is conversion factor between hartree and kJ/mol
+                    bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
+                    print('{0} kJ/mol'.format(bindingEnergy))
+            agent = 'owl'
 
-#for each key in d2, split the key at the underscore.
-for key in d2:
-    singleMols = key.split("_")
-    energy1 = d.get(singleMols[0].lower())
-    energy2 = d.get(singleMols[1].lower())
-    interE = d2.get(key)
-    print('\n{0}, configuration {1}'.format(singleMols,interE[1]))
-    #2625.5 is conversion factor between hartree and kJ/mol
-    bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
-    print('{0} kJ/mol'.format(bindingEnergy))
+
