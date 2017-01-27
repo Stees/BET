@@ -19,8 +19,8 @@ name = str(user.communicate()[0].split()).replace("['","").replace("']","")
 
 if name == 'jpr54':
     trajectoryLocation = '/ihome/kjohnson/jpr54/orca/geometryOptimizations/bestInteractionTrajectories/'
-elif name == 'krb115':
-    trajectoryLocation = '/ihome/kjohnson/krb115/orca/bestInteractionTrajectories/'
+#elif name == 'krb115':
+    #trajectoryLocation = '/ihome/kjohnson/krb115/orca/bestInteractionTrajectories/'
 
 #figure out what is in the queue
 currentJobs = subprocess.Popen(r'qstat -n one_day -u jpr54 | grep "one_day" | cut -d. -f 1', stdout=subprocess.PIPE, shell=True)
@@ -28,20 +28,20 @@ activeJobs = currentJobs.communicate()[0].split()
 
 #identify all the energies of the single molecules
 sStructures = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=r'/ihome/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/')
-sub1Structures = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=r'/ihome/kjohnson/krb115/orca/singleMolecules/')
+#sub1Structures = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=r'/ihome/kjohnson/krb115/orca/singleMolecules/')
 singleMolecules1 = sStructures.communicate()[0].split()
-singleMolecules2 = sub1Structures.communicate()[0].split()
+#singleMolecules2 = sub1Structures.communicate()[0].split()
 d = defaultdict(list)
 
 #create array to hold energies of single molecules.
 #get the energies of all the single molecules, store them in the dictionary in position corresponding to name
-for counter, structure in enumerate(singleMolecules1 + singleMolecules2):
+for counter, structure in enumerate(singleMolecules1):# + singleMolecules2):
     if structure.lower() not in d.keys():
         k = structure.lower()
         if structure in singleMolecules1:
             location = '/ihome/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/' + structure + '/'
-        elif structure in singleMolecules2:
-            location = '/ihome/kjohnson/krb115/orca/singleMolecules/' + structure + '/'
+        #elif structure in singleMolecules2:
+        #    location = '/ihome/kjohnson/krb115/orca/singleMolecules/' + structure + '/'
         files = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=location)
         fileNames = files.communicate()[0].split()
         #next line will only show calculations that have finished running: not true
@@ -57,9 +57,8 @@ for counter, structure in enumerate(singleMolecules1 + singleMolecules2):
                 tempNumber = getNumber.communicate()[0]
                 if tempNumber not in activeJobs:
                     print('\n\n\n*****Optimization needs more steps*****\n{0}\n'.format(location))
-                    #restart the calculation. First, move the gbw file and the coordinate file
+                    #restart the calculation. First, move the gbw file
                     wavefunctionMove = subprocess.Popen(r'mv geometryOptimizationOrca.gbw geometryOptimizationOrcaOLD.gbw', cwd=location, shell=True)
-                    structureMove = subprocess.Popen(r'mv geometryOptimizationOrca.xyz {0}.xyz'.format(structure.replace('c',',')), cwd=location, shell=True)
                     #now, modify the .inp file! Read all the lines of input file
                     optfile = open('{0}geometryOptimizationOrca.inp'.format(location), 'r')
                     lines = optfile.readlines()
@@ -70,8 +69,12 @@ for counter, structure in enumerate(singleMolecules1 + singleMolecules2):
                     newopt.write('! PBE Def2-TZVP TIGHTSCF OPT D3BJ MORead\n')
                     newopt.write('%moinp "geometryOptimizationOrcaOLD.gbw"\n')
                     newopt.write('#the numbers after xyzfile correspond to charge and multiplicity\n')
+                    #takes the final line of the input file and reprints it so that the code does not need to reprint the input coordiate file name
                     newopt.write('{0}'.format(lines[-1]))
                     newopt.close()
+                    #get the name of the coordinate file out of the last line of lines so that it can be used to move the coordinates from the unfinished calculation
+                    coordName = lines[-1].rsplit(' ', 1)[1]
+                    structureMove = subprocess.Popen(r'mv geometryOptimizationOrca.xyz {0}'.format(coordName), cwd=location, shell=True)
                     job = subprocess.Popen('qsub job.pbs', stdout=subprocess.PIPE, cwd=location, shell=True)
                     #get the job number so it can be added to the JobId file
                     jobNumber = str(job.communicate()[0].split()).rsplit('.')[0].replace("['","")
@@ -96,21 +99,21 @@ for counter, structure in enumerate(singleMolecules1 + singleMolecules2):
 
 #get the names of the interaction configurations
 iStructures = subprocess.Popen(r'ls *_* -d', stdout=subprocess.PIPE, cwd=r'/ihome/kjohnson/jpr54/orca/geometryOptimizations/interactions/', shell=True)
-subIStructures = subprocess.Popen(r'ls *_* -d', stdout=subprocess.PIPE, cwd=r'/ihome/kjohnson/krb115/orca/multipleMolecules/', shell=True)
+#subIStructures = subprocess.Popen(r'ls *_* -d', stdout=subprocess.PIPE, cwd=r'/ihome/kjohnson/krb115/orca/multipleMolecules/', shell=True)
 interactions1 = iStructures.communicate()[0].split()
-interactions2 = subIStructures.communicate()[0].split()
+#interactions2 = subIStructures.communicate()[0].split()
 
 #make another dictionary for the interaction calculation energies
 d2 = defaultdict(list)
 
 #get the most negative for each interaction
-for iStruct in (interactions1 + interactions2):
+for iStruct in (interactions1):# + interactions2):
     if iStruct.lower() not in d2.keys():
         k = iStruct
         if iStruct in interactions1:
             outerLocation = '/ihome/kjohnson/jpr54/orca/geometryOptimizations/interactions/' + iStruct + '/'
-        elif iStruct in interactions2:
-            outerLocation = '/ihome/kjohnson/krb115/orca/multipleMolecules/' + iStruct + '/'
+        #elif iStruct in interactions2:
+            #outerLocation = '/ihome/kjohnson/krb115/orca/multipleMolecules/' + iStruct + '/'
         #ls the number directories for each interaction pair
         nums = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=outerLocation)
         numbers = nums.communicate()[0].split()
@@ -135,11 +138,11 @@ for iStruct in (interactions1 + interactions2):
                         print('\n\n\n*****Optimization needs more steps*****\n{0}\n'.format(innerLocation))
                         #determine if the calculation is in the user's directory, or a different user.
                         if (iStruct in interactions1 and name == 'jpr54'):
-                            #restart the calculation. First, move the gbw file and the coordinate file
+                            #restart the calculation. First, move the gbw file
                             wavefunctionMove = subprocess.Popen(r'mv geometryOptimizationOrca.gbw geometryOptimizationOrcaOLD.gbw', cwd=innerLocation, shell=True)
                             #the name of the structure file should be...
                             structureFileName = iStruct + '_' + str(number)
-                            structureMove = subprocess.Popen(r'mv geometryOptimizationOrca.xyz {0}.xyz'.format(structureFileName.replace('c',',')), cwd=innerLocation, shell=True)
+                            #structureMove = subprocess.Popen(r'mv geometryOptimizationOrca.xyz {0}.xyz'.format(structureFileName.replace('c',',')), cwd=innerLocation, shell=True)
                             #now, modify the .inp file! Read all the lines of input file
                             optfile = open('{0}geometryOptimizationOrca.inp'.format(innerLocation), 'r')
                             lines = optfile.readlines()
@@ -152,6 +155,9 @@ for iStruct in (interactions1 + interactions2):
                             newopt.write('#the numbers after xyzfile correspond to charge and multiplicity\n')
                             newopt.write('{0}'.format(lines[-1]))
                             newopt.close()
+                            coordName = lines[-1].rsplit(' ', 1)[1]
+                            print('{0}'.format(lines[-1]))
+                            structureMove = subprocess.Popen(r'mv geometryOptimizationOrca.xyz {0}'.format(coordName), cwd=innerLocation, shell=True)
                             job = subprocess.Popen('qsub job.pbs', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
 
                             #get the job number so it can be added to the JobId file
