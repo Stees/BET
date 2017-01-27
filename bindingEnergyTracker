@@ -117,7 +117,6 @@ for iStruct in (interactions1):# + interactions2):
         #ls the number directories for each interaction pair
         nums = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=outerLocation)
         numbers = nums.communicate()[0].split()
-        #print('{0}'.format(numbers))
         #find the mimimum for each calculation
         minimum = 0
         index = 0
@@ -125,7 +124,6 @@ for iStruct in (interactions1):# + interactions2):
             innerLocation = outerLocation + str(number) + '/'
             files2 = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=innerLocation)
             fileNames2 = files2.communicate()[0].split()
-            #print('\n\n{0}\n'.format(fileNames2))
             if "geometryOptimizationOrca.out" in fileNames2:
                 additionalCycles2 = subprocess.Popen(r'grep "The optimization did not converge but reached the maximum number of" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                 cycleFlag2 = additionalCycles2.communicate()[0]
@@ -156,7 +154,6 @@ for iStruct in (interactions1):# + interactions2):
                             newopt.write('{0}'.format(lines[-1]))
                             newopt.close()
                             coordName = lines[-1].rsplit(' ', 1)[1]
-                            print('{0}'.format(lines[-1]))
                             structureMove = subprocess.Popen(r'mv geometryOptimizationOrca.xyz {0}'.format(coordName), cwd=innerLocation, shell=True)
                             job = subprocess.Popen('qsub job.pbs', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
 
@@ -171,7 +168,6 @@ for iStruct in (interactions1):# + interactions2):
                 elif "OPTIMIZATION" in str(calcFlag2):
                     getEnergy = subprocess.Popen(r'grep "FINAL SINGLE POINT ENERGY" geometryOptimizationOrca.out | tail -n 1', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                     v = Decimal(getEnergy.communicate()[0].split()[4])
-                    #print('{0}'.format(v))
                     trajectoryMoveLocation = trajectoryLocation+iStruct+'OptimumTrajectory.xyz'
                     if v < minimum:
                         minimum = v
