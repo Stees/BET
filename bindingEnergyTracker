@@ -115,13 +115,14 @@ for iStruct in (interactions1):# + interactions2):
         #elif iStruct in interactions2:
             #outerLocation = '/ihome/kjohnson/krb115/orca/multipleMolecules/' + iStruct + '/'
         #ls the number directories for each interaction pair
-        nums = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=outerLocation)
+        nums = subprocess.Popen(r'ls -d */', stdout=subprocess.PIPE, cwd=outerLocation, shell=True)
         numbers = nums.communicate()[0].split()
         #find the mimimum for each calculation
         minimum = 0
         index = 0
         for number in numbers:
-            innerLocation = outerLocation + str(number) + '/'
+            innerLocation = outerLocation + str(number)
+            print('{0}'.format(innerLocation))
             files2 = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=innerLocation)
             fileNames2 = files2.communicate()[0].split()
             if "geometryOptimizationOrca.out" in fileNames2:
