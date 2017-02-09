@@ -122,7 +122,6 @@ for iStruct in (interactions1):# + interactions2):
         index = 0
         for number in numbers:
             innerLocation = outerLocation + str(number)
-            print('{0}'.format(innerLocation))
             files2 = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=innerLocation)
             fileNames2 = files2.communicate()[0].split()
             if "geometryOptimizationOrca.out" in fileNames2:
