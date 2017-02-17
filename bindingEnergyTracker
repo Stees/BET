@@ -6,7 +6,6 @@ import subprocess
 import readline
 import shutil
 from re import sub
-import time
 from collections import defaultdict
 from decimal import *
 
