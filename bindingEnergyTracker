@@ -65,7 +65,7 @@ for counter, structure in enumerate(singleMolecules1):# + singleMolecules2):
                     newopt = open('{0}geometryOptimizationOrca.inp'.format(location), 'w')
                     newopt.write('#give keywords by using !\n')
                     newopt.write('#functional, number of basis sets, dispersion correction\n')
-                    newopt.write('! PBE Def2-TZVP TIGHTSCF OPT D3BJ MORead\n')
+                    newopt.write('! PBE Def2-TZVP TIGHTSCF OPT D3BJ MORead pal8\n')
                     newopt.write('%moinp "geometryOptimizationOrcaOLD.gbw"\n')
                     newopt.write('#the numbers after xyzfile correspond to charge and multiplicity\n')
                     #takes the final line of the input file and reprints it so that the code does not need to reprint the input coordiate file name
