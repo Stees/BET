@@ -187,7 +187,15 @@ filter = 3
 while (filter != 1 and filter != 2):
     if (filter != 3):
         print('\nLikely invalid entry. Try again.\n\n')
-    filter = int(raw_input('To print energies for all pairs, type 1.\nTo filter data, type 2.\n\n'))
+    f1 = raw_input('To print energies for all pairs, type 1.\nTo filter data, type 2.\n\n')
+    if not f1:
+        print('\nEnter a value\n')
+        filter = 3
+    else:
+        try:
+            filter = int(f1)
+        except ValueError:
+            print('Invalid entry. Try again.\n')
     if (filter == 1):
         #for each key in d2, split the key at the underscore.
         for key in d2:
@@ -195,7 +203,7 @@ while (filter != 1 and filter != 2):
             energy1 = d.get(singleMols[0].lower())
             energy2 = d.get(singleMols[1].lower())
             interE = d2.get(key)
-            print('\n{0}, configuration {1}'.format(singleMols,interE[1]))
+            print('\n{0}, configuration {1}'.format(singleMols,interE[1].replace("/","")))
             #2625.5 is conversion factor between hartree and kJ/mol
             bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
             print('{0} kJ/mol'.format(bindingEnergy))
@@ -211,7 +219,7 @@ while (filter != 1 and filter != 2):
                     energy1 = d.get(singleMols[0].lower())
                     energy2 = d.get(singleMols[1].lower())
                     interE = d2.get(key)
-                    print('\n{0}, configuration {1}'.format(singleMols,interE[1]))
+                    print('\n{0}, configuration {1}'.format(singleMols,interE[1].replace("/","")))
                     #2625.5 is conversion factor between hartree and kJ/mol
                     bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
                     print('{0} kJ/mol'.format(bindingEnergy))
