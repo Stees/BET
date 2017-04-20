@@ -49,6 +49,8 @@ for counter, structure in enumerate(singleMolecules1):# + singleMolecules2):
             cycleFlag = additionalCycles.communicate()[0]
             calcSuccess = subprocess.Popen(r'grep "OPTIMIZATION RUN DONE" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=location, shell=True)
             calcFlag = calcSuccess.communicate()[0]
+            lambdaSuccess = subprocess.Popen('grep "Error (ORCA_GSTEP)" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=location, shell=True)
+            lambdaFlag = lambdaSuccess.communicate()[0]
             #next line will make sure that calculation did not run out of geometry optimization steps
             if "The optimization did not converge" in str(cycleFlag):
                 #check if the calculation is idled in the queue
@@ -89,6 +91,8 @@ for counter, structure in enumerate(singleMolecules1):# + singleMolecules2):
                 getEnergy = subprocess.Popen(r'grep "FINAL SINGLE POINT ENERGY" geometryOptimizationOrca.out | tail -n 1', stdout=subprocess.PIPE, cwd=location, shell=True)
                 v = Decimal(getEnergy.communicate()[0].split()[4])
                 d[k].append(v)
+            elif "ORCA_GSTEP" in str(lambdaFlag):
+                ignore = 1
             else:
                 getNumber = subprocess.Popen('cat JobId', stdout=subprocess.PIPE, cwd=location, shell=True)
                 tempNumber = getNumber.communicate()[0]
@@ -105,7 +109,7 @@ interactions1 = iStructures.communicate()[0].split()
 #make another dictionary for the interaction calculation energies
 d2 = defaultdict(list)
 
-#get the most negative for each interaction
+#get the most negative energy for each interaction
 for iStruct in (interactions1):# + interactions2):
     if iStruct.lower() not in d2.keys():
         k = iStruct
@@ -128,6 +132,8 @@ for iStruct in (interactions1):# + interactions2):
                 cycleFlag2 = additionalCycles2.communicate()[0]
                 calcSuccess2 = subprocess.Popen(r'grep "OPTIMIZATION RUN DONE" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                 calcFlag2 = calcSuccess2.communicate()[0]
+                lambdaSuccess2 = subprocess.Popen('grep "Error (ORCA_GSTEP)" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+                lambdaFlag2 = lambdaSuccess2.communicate()[0]
                 if "The optimization did not converge" in str(cycleFlag2):
                     getNumber = subprocess.Popen('cat JobId', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                     tempNumber = getNumber.communicate()[0]
@@ -172,6 +178,8 @@ for iStruct in (interactions1):# + interactions2):
                         minimum = v
                         index = number
                         copyTrajectory = subprocess.Popen(r'cp -f geometryOptimizationOrca.trj {0}'.format(trajectoryMoveLocation), stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+                elif "ORCA_GSTEP" in lambdaFlag2:
+                    ignore = 1
                 else:
                     getNumber = subprocess.Popen('cat JobId', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                     tempNumber = getNumber.communicate()[0]
