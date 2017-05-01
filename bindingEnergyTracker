@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 #code will determine the greatest interaction energy for each molecule calculation pair, and provide a convenient view of final and initial positions for the optimization
 
-#import os
 import subprocess
 import readline
 import shutil
@@ -22,7 +21,7 @@ if name == 'jpr54':
     #trajectoryLocation = '/ihome/kjohnson/krb115/orca/bestInteractionTrajectories/'
 
 #figure out what is in the queue
-currentJobs = subprocess.Popen(r'qstat -n one_day -u jpr54 | grep "one_day" | cut -d. -f 1', stdout=subprocess.PIPE, shell=True)
+currentJobs = subprocess.Popen("squeue -u $USER -o '%7i%24j%8u' | grep 'jpr54' | awk '{print $1;}'", stdout=subprocess.PIPE, shell=True)
 activeJobs = currentJobs.communicate()[0].split()
 
 #identify all the energies of the single molecules
@@ -41,7 +40,7 @@ for counter, structure in enumerate(singleMolecules1):# + singleMolecules2):
             location = '/ihome/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/' + structure + '/'
         #elif structure in singleMolecules2:
         #    location = '/ihome/kjohnson/krb115/orca/singleMolecules/' + structure + '/'
-        files = subprocess.Popen(r'ls', stdout=subprocess.PIPE, cwd=location)
+        files = subprocess.Popen('ls', stdout=subprocess.PIPE, cwd=location)
         fileNames = files.communicate()[0].split()
         #next line will only show calculations that have finished running: not true
         if "geometryOptimizationOrca.out" in fileNames:
@@ -76,9 +75,9 @@ for counter, structure in enumerate(singleMolecules1):# + singleMolecules2):
                     #get the name of the coordinate file out of the last line of lines so that it can be used to move the coordinates from the unfinished calculation
                     coordName = lines[-1].rsplit(' ', 1)[1]
                     structureMove = subprocess.Popen(r'mv geometryOptimizationOrca.xyz {0}'.format(coordName), cwd=location, shell=True)
-                    job = subprocess.Popen('qsub job.pbs', stdout=subprocess.PIPE, cwd=location, shell=True)
+                    job = subprocess.Popen('sbatch job.slurm', stdout=subprocess.PIPE, cwd=location, shell=True)
                     #get the job number so it can be added to the JobId file
-                    jobNumber = str(job.communicate()[0].split()).rsplit('.')[0].replace("['","")
+                    jobNumber = job.communicate()[0].split()[3]
                     print('{0} {1}'.format(jobNumber,structure))
                     #append the job number into the file
                     jobFile = open('{0}JobId'.format(location), 'w')
@@ -160,10 +159,10 @@ for iStruct in (interactions1):# + interactions2):
                             newopt.close()
                             coordName = lines[-1].rsplit(' ', 1)[1]
                             structureMove = subprocess.Popen(r'mv geometryOptimizationOrca.xyz {0}'.format(coordName), cwd=innerLocation, shell=True)
-                            job = subprocess.Popen('qsub job.pbs', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+                            job = subprocess.Popen('sbatch job.slurm', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
 
                             #get the job number so it can be added to the JobId file
-                            jobNumber = str(job.communicate()[0].split()).rsplit('.')[0].replace("['","")
+                            jobNumber = job.communicate()[0].split()[3]
                             print('{0} {1}'.format(jobNumber,structureFileName))
                             #append the job number into the file so it can be compared to what is running in the queue
                             jobFile = open('{0}JobId'.format(innerLocation), 'w')
