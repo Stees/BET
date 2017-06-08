@@ -197,7 +197,7 @@ if 'login0.crc.pitt.edu' in host:
     while (filter != 1 and filter != 2 and filter != 3):
         if (filter != 4):
             print('\nLikely invalid entry. Try again.\n\n')
-        f1 = raw_input('To print energies for all pairs, type 1.\nTo filter data, type 2.\nTo exit, type 3\n')
+        f1 = raw_input('\n\nTo print energies for all pairs, type 1.\nTo filter data, type 2.\nTo exit, type 3\n')
         if not f1:
             print('\nEnter a value\n')
             filter = 4
