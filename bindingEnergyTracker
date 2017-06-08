@@ -190,14 +190,14 @@ for iStruct in (interactions1):# + interactions2):
 #calculate the interaction energies
 
 #allow for selection of only specific analyte to print
-filter = 3
-while (filter != 1 and filter != 2):
-    if (filter != 3):
+filter = 4
+while (filter != 1 and filter != 2 and filter != 3):
+    if (filter != 4):
         print('\nLikely invalid entry. Try again.\n\n')
-    f1 = raw_input('To print energies for all pairs, type 1.\nTo filter data, type 2.\n\n')
+    f1 = raw_input('To print energies for all pairs, type 1.\nTo filter data, type 2.\nTo exit, type 3\n')
     if not f1:
         print('\nEnter a value\n')
-        filter = 3
+        filter = 4
     else:
         try:
             filter = int(f1)
@@ -231,5 +231,6 @@ while (filter != 1 and filter != 2):
                     bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
                     print('{0} kJ/mol'.format(bindingEnergy))
             agent = 'owl'
+        
 
 
