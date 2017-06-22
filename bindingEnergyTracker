@@ -77,6 +77,18 @@ if 'login0.crc.pitt.edu' in host:
                         #takes the final line of the input file and reprints it so that the code does not need to reprint the input coordiate file name
                         newopt.write('{0}'.format(lines[-1]))
                         newopt.close()
+                        #make sure there are no 'ulimit' requests in the input file
+                        submissionFile = open('{0}job.slurm'.format(location), 'r')
+                        subLines = submissionFile.readlines()
+                        submissionFile.close()
+                        time.sleep(0.1)
+                        newSubFile = open('{0}job.slurm'.format(location), 'w')
+                        for subLine in subLines:
+                            print('{0}'.format(subLine))
+                            if 'ulimit -s unlimited' not in subLine:
+                                print('{0}'.format(subLine))
+                                newSubFile.write(subLine)
+                        newSubFile.close()
                         #get the name of the coordinate file out of the last line of lines so that it can be used to move the coordinates from the unfinished calculation
                         coordName = lines[-1].rsplit(' ', 1)[1]
                         structureMove = subprocess.Popen(r'mv geometryOptimizationOrca.xyz {0}'.format(coordName), cwd=location, shell=True)
@@ -248,11 +260,15 @@ if 'login0.crc.pitt.edu' in host:
                             singleMols = key.split("_")
                             energy1 = d.get(singleMols[0].lower())
                             energy2 = d.get(singleMols[1].lower())
-                            interE = d2.get(key)
-                            print('\n{0}, configuration {1}'.format(singleMols,interE[1].replace("/","")))
-                            #2625.5 is conversion factor between hartree and kJ/mol
-                            bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
-                            print('{0} kJ/mol'.format(bindingEnergy))
+                            try:
+                                interE = d2.get(key)
+                                print('\n{0}, configuration {1}'.format(singleMols,interE[1].replace("/","")))
+                                #2625.5 is conversion factor between hartree and kJ/mol
+                                bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
+                                print('{0} kJ/mol'.format(bindingEnergy))
+                            except:
+                                print('\nNo data for {0} yet.'.format(singleMols))
+                            
                     if (flag == 1):
                         repeat = 's'
                         while (repeat != 'y' and repeat != 'n'):
