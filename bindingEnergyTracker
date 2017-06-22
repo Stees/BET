@@ -238,11 +238,14 @@ if 'login0.crc.pitt.edu' in host:
                     singleMols = key.split("_")
                     energy1 = d.get(singleMols[0].lower())
                     energy2 = d.get(singleMols[1].lower())
-                    interE = d2.get(key)
-                    print('\n{0}, configuration {1}'.format(singleMols,interE[1].replace("/","")))
-                    #2625.5 is conversion factor between hartree and kJ/mol
-                    bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
-                    print('{0} kJ/mol'.format(bindingEnergy))
+                    try:
+                        interE = d2.get(key)
+                        print('\n{0}, configuration {1}'.format(singleMols,interE[1].replace("/","")))
+                        #2625.5 is conversion factor between hartree and kJ/mol
+                        bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
+                        print('{0} kJ/mol'.format(bindingEnergy))
+                    except:
+                        print('\nNo data for {0} yet.\n'.format(singleMols))
             elif (filter == 2):
                 agent = 'apple'
                 flag = 0
@@ -298,7 +301,7 @@ if 'login0.crc.pitt.edu' in host:
                     for counter, key in enumerate(d2):
                         print('{0}: {1}'.format(counter,key))
                         pairArray.append(key)
-                    pairs = raw_input('\nEnter the numbers corresponding to interaction pairs you desire.\nInvalid entries will be ignored.\n')
+                    pairs = raw_input('\nEnter the numbers corresponding to interaction pairs you desire.\nInvalid entries will be ignored, and calculations without results yet will print the pair name with no energies.\n')
                     if not pairs:
                         print('\nEnter a value.\n')
                         time.sleep(0.75)
