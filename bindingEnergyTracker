@@ -9,20 +9,19 @@ from collections import defaultdict
 from decimal import *
 import numpy as np
 import time
+import os
 
 #set decimal context
 getcontext().prec = 14
-
 #determine who the user is
 user = subprocess.Popen(r'whoami', stdout=subprocess.PIPE)
 name = str(user.communicate()[0].split()).replace("['","").replace("']","")
-
 #determine filesystem
 FS = subprocess.Popen('pwd', stdout=subprocess.PIPE)
 fs = str(FS.communicate()[0].split())
-
 getHost = subprocess.Popen('hostname', stdout=subprocess.PIPE)
 host = getHost.communicate()[0].split()[0]
+
 
 if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
     def calculationStatus( oLocation, uName, aJobs, Minimum, Index, localMinLocation, trajLocation ):
@@ -41,14 +40,14 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
             if "geometryOptimizationOrca.out" in fileNames2:
                 additionalCycles2 = subprocess.Popen('grep "The optimization did not converge but reached the maximum number of" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                 cycleFlag2 = additionalCycles2.communicate()[0]
-                calcSuccess2 = subprocess.Popen(r'grep "OPTIMIZATION RUN DONE" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+                calcSuccess2 = subprocess.Popen('grep "OPTIMIZATION RUN DONE" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                 calcFlag2 = calcSuccess2.communicate()[0]
                 lambdaSuccess2 = subprocess.Popen('grep "Error (ORCA_GSTEP)" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                 lambdaFlag2 = lambdaSuccess2.communicate()[0]
                 if "The optimization did not converge" in str(cycleFlag2) and "zfs1" not in oLocation:
                     getNumber = subprocess.Popen('cat JobId', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                     tempNumber = getNumber.communicate()[0]
-                    if (tempNumber not in activeJobs):
+                    if (tempNumber not in aJobs):
                         print('\n\n\n*****Optimization needs more steps*****\n{0}\n'.format(innerLocation))
                         #determine if the calculation is in the user's directory, or a different user.
                         if (uName == 'jpr54'):
@@ -72,7 +71,6 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                             coordName = lines[-1].rsplit(' ', 1)[1]
                             structureMove = subprocess.Popen('mv geometryOptimizationOrca.xyz {0}'.format(coordName), cwd=innerLocation, shell=True)
                             job = subprocess.Popen('sbatch job.slurm', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
-
                             #get the job number so it can be added to the JobId file
                             jobNumber = job.communicate()[0].split()[3]
                             print('{0} {1}'.format(jobNumber,structureFileName))
@@ -80,7 +78,6 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                             jobFile = open('{0}JobId'.format(innerLocation), 'w')
                             jobFile.write('{0}'.format(jobNumber))
                             jobFile.close()
-
                 elif "OPTIMIZATION" in str(calcFlag2):
                     getEnergy = subprocess.Popen('grep "FINAL SINGLE POINT ENERGY" geometryOptimizationOrca.out | tail -n 1', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                     v = Decimal(getEnergy.communicate()[0].split()[4])
@@ -95,7 +92,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                         try:
                             subprocess.Popen('bash -c "mv {0} /zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/interactions/{1}/"'.format(innerLocation, iStruct), shell=True)
                         except:
-                            print('Trouble moveing {0} to zfs.\n'.format(innerLocation))
+                            print('Trouble moving {0} to zfs.\n'.format(innerLocation))
                 elif "ORCA_GSTEP" in lambdaFlag2:
                     ignore = 1
                     #This should be moved to zfs. It is not useful data.
@@ -109,8 +106,33 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     tempNumber = getNumber.communicate()[0]
                     if tempNumber not in activeJobs:
                         print('\n\n\n*****Walltime likely exceeded*****\n{0}\n\n\n'.format(innerLocation))
-            #copy trajectory for the best interaction
-            if 'ihome' in oLocation:
+            elif 'geometryOptimizationOrca.out' not in fileNames2:
+                if 'geometryOptimizationOrca.inp' not in fileNames2 and 'job.slurm' not in fileNames2:
+                    print('\nPossible failed file deletion without directory deletion at {0}\n'.format(innerLocation))
+                elif 'job.pbs' in fileNames2:
+                    print('\nLegacy job problem: {0}\n'.format(innerLocation))
+                else:
+                    getNumber = subprocess.Popen('cat JobId', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+                    tempNumber = getNumber.communicate()[0]
+                    if tempNumber not in aJobs:
+                        
+                        #check to make sure the calculation files are not empty.
+                        if os.path.getsize(innerLocation+'job.slurm') == 0:
+                            print('\nCalculation files are empty: {0}'.format(innerLocation))
+                        else:
+                            #calculation may have been killed. resubmit it.
+                            print('\nCalculation {0} may have been killed (by mem error). Resubmitting.\n'.format(innerLocation))
+                            job = subprocess.Popen('sbatch job.slurm', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+                            #get the job number so it can be added to the JobId file
+                            jobNumber = job.communicate()[0].split()[3]
+                            structureFileName = iStruct + '_' + str(number)
+                            print('{0} {1}'.format(jobNumber,structureFileName))
+                            #append the job number into the file so it can be compared to what is running in the queue
+                            jobFile = open('{0}JobId'.format(innerLocation), 'w')
+                            jobFile.write('{0}'.format(jobNumber))
+                            jobFile.close()
+        #copy trajectory for the best interaction
+            if 'ihome' in oLocation and number == numbers[-1]:
                 trajectoryMoveLocation = trajectoryLocation+iStruct+'OptimumTrajectory.xyz'
                 try:
                     copyTrajectory = subprocess.Popen(r'cp -f geometryOptimizationOrca.trj {0}'.format(trajectoryMoveLocation), stdout=subprocess.PIPE, cwd=localMinLocation, shell=True)
@@ -120,12 +142,11 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
 
 
 
+#*********************Part1******************************************
     trajectoryLocation = '/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/bestInteractionTrajectories/'
-
     #figure out what is in the queue
     currentJobs = subprocess.Popen("squeue -u $USER -o '%7i%24j%8u' | grep 'jpr54' | awk '{print $1;}'", stdout=subprocess.PIPE, shell=True)
     activeJobs = currentJobs.communicate()[0].split()
-
     #identify all the energies of the single molecules from ihome and zfs
     sStructures = subprocess.Popen('ls', stdout=subprocess.PIPE, cwd='/ihome/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/')
     sStructures2 = subprocess.Popen('ls', stdout=subprocess.PIPE, cwd='/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/')
@@ -133,7 +154,6 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
     singleMolecules2 = sStructures2.communicate()[0].split()
     singleMolecules = singleMolecules1 + singleMolecules2
     d = defaultdict(list)
-
     #create array to hold energies of single molecules.
     #get the energies of all the single molecules, store them in the dictionary in position corresponding to name
     for counter, structure in enumerate(singleMolecules):
@@ -198,8 +218,6 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                         jobFile = open('{0}JobId'.format(location), 'w')
                         jobFile.write('{0}'.format(jobNumber))
                         jobFile.close()
-
-
                 #make sure the success message is present in the file
                 elif "OPTIMIZATION" in str(calcFlag):
                     getEnergy = subprocess.Popen('grep "FINAL SINGLE POINT ENERGY" geometryOptimizationOrca.out | tail -n 1', stdout=subprocess.PIPE, cwd=location, shell=True)
@@ -226,19 +244,17 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
     #get the names of the interaction configurations
     iStructures = subprocess.Popen(r'ls *_* -d', stdout=subprocess.PIPE, cwd='/ihome/kjohnson/jpr54/orca/geometryOptimizations/interactions/', shell=True)
     zStructures = subprocess.Popen(r'ls *_* -d', stdout=subprocess.PIPE, cwd='/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/interactions/', shell=True)
-    interactions1 = iStructures.communicate()[0].split()
-    interactions2 = zStructures.communicate()[0].split()
-    interactions = interactions1 + interactions2
-
+    interactionsi = iStructures.communicate()[0].split()
+    interactionsz = zStructures.communicate()[0].split()
+    interactions = interactionsi + interactionsz
     #make sure there are mirroring directories for everything on ihome on zfs
-    for pair in interactions1:
-        if pair not in interactions2:
+    for pair in interactionsi:
+        if pair not in interactionsz:
             subprocess.Popen('mkdir /zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/interactions/{0}'.format(pair), shell=True)
     time.sleep(0.25)
     #make another dictionary for the interaction calculation energies
     d2 = defaultdict(list)
     d3 = defaultdict(list)
-
     #get the most negative energy for each interaction, and every energy for the interaction -> store this separately.
     for iStruct in (interactions):
         if iStruct not in d2.keys():
@@ -250,10 +266,10 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
             index = 0
             localMinimumLocation = ''
             k = iStruct
-            if iStruct in interactions1:
+            if iStruct in interactionsz:
                 outerLocation = '/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/interactions/' + iStruct + '/'
                 minimum, index, localMinimumLocation, tempListAllEnergies, tempListAllConfigs = calculationStatus( outerLocation, name, activeJobs, minimum, index, localMinimumLocation, trajectoryLocation )
-            if iStruct in interactions2:
+            if iStruct in interactionsi:
                 outerLocation = '/ihome/kjohnson/jpr54/orca/geometryOptimizations/interactions/' + iStruct + '/'
                 minimum, index, localMinimumLocation, appendEnergies, appendConfigs = calculationStatus( outerLocation, name, activeJobs, minimum, index, localMinimumLocation, trajectoryLocation )
                 tempListAllEnergies = tempListAllEnergies + appendEnergies
@@ -396,7 +412,6 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     roll = 1
                 else:
                     print('\nPlease try again.\n')
-                
 elif 'ihome' not in fs:
     print('{0}'.format(fs))
     print('\n\nYou need to cd to ihome.\n')
