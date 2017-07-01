@@ -14,7 +14,7 @@ import os
 #set decimal context
 getcontext().prec = 14
 #determine who the user is
-user = subprocess.Popen(r'whoami', stdout=subprocess.PIPE)
+user = subprocess.Popen('whoami', stdout=subprocess.PIPE)
 name = str(user.communicate()[0].split()).replace("['","").replace("']","")
 #determine filesystem
 FS = subprocess.Popen('pwd', stdout=subprocess.PIPE)
@@ -44,6 +44,8 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                 calcFlag2 = calcSuccess2.communicate()[0]
                 lambdaSuccess2 = subprocess.Popen('grep "Error (ORCA_GSTEP)" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                 lambdaFlag2 = lambdaSuccess2.communicate()[0]
+                stepSuccess = subprocess.Popen('grep "SERIOUS PROBLEM IN SOSCF" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+                stepFlag = stepSuccess.communicate()[0]
                 if "The optimization did not converge" in str(cycleFlag2) and "zfs1" not in oLocation:
                     getNumber = subprocess.Popen('cat JobId', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                     tempNumber = getNumber.communicate()[0]
@@ -93,7 +95,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                             subprocess.Popen('bash -c "mv {0} /zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/interactions/{1}/"'.format(innerLocation, iStruct), shell=True)
                         except:
                             print('Trouble moving {0} to zfs.\n'.format(innerLocation))
-                elif "ORCA_GSTEP" in lambdaFlag2:
+                elif "ORCA_GSTEP" in lambdaFlag2 or "PROBLEM IN SOSCF" in stepFlag:
                     ignore = 1
                     #This should be moved to zfs. It is not useful data.
                     if 'zfs' not in innerLocation:
@@ -167,7 +169,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
             fileNames = files.communicate()[0].split()
             #next line will only show calculations that have finished running:
             if "geometryOptimizationOrca.out" in fileNames:
-                additionalCycles = subprocess.Popen(r'grep "The optimization did not converge but reached the maximum number of" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=location, shell=True)
+                additionalCycles = subprocess.Popen('grep "The optimization did not converge but reached the maximum number of" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=location, shell=True)
                 cycleFlag = additionalCycles.communicate()[0]
                 calcSuccess = subprocess.Popen(r'grep "OPTIMIZATION RUN DONE" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=location, shell=True)
                 calcFlag = calcSuccess.communicate()[0]
