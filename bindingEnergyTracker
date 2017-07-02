@@ -24,7 +24,7 @@ host = getHost.communicate()[0].split()[0]
 
 
 if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
-    def calculationStatus( oLocation, uName, aJobs, Minimum, Index, localMinLocation, trajLocation ):
+    def calculationStatus( oLocation, uName, aJobs, Minimum, Index, localMinLocation ):
         tempListEnergies = []
         tempListConfigs = []
         #ls the number directories for each interaction pair
@@ -134,10 +134,12 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                             jobFile.write('{0}'.format(jobNumber))
                             jobFile.close()
         #copy trajectory for the best interaction
-            if 'ihome' in oLocation and number == numbers[-1]:
+            if number == numbers[-1]:
                 trajectoryMoveLocation = trajectoryLocation+iStruct+'OptimumTrajectory.xyz'
+                configurationMoveLocation = finalConfigurationLocation + iStruct + 'OptimumConfiguration.xyz'
                 try:
-                    copyTrajectory = subprocess.Popen(r'cp -f geometryOptimizationOrca.trj {0}'.format(trajectoryMoveLocation), stdout=subprocess.PIPE, cwd=localMinLocation, shell=True)
+                    copyTrajectory = subprocess.Popen(r'cp -f geometryOptimizationOrca.trj {0}'.format(trajectoryMoveLocation), cwd=localMinLocation, shell=True)
+                    copyConfiguration = subprocess.Popen('cp -f geometryOptimizationOrca.xyz {0}'.format(configurationMoveLocation), cwd=localMinLocation, shell=True)
                 except:
                     time.sleep(0)
         return(Minimum,Index,localMinLocation,tempListEnergies,tempListConfigs)
@@ -146,6 +148,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
 
 #*********************Part1******************************************
     trajectoryLocation = '/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/bestInteractionTrajectories/'
+    finalConfigurationLocation = '/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/finalConfigurations/'
     #figure out what is in the queue
     currentJobs = subprocess.Popen("squeue -u $USER -o '%7i%24j%8u' | grep 'jpr54' | awk '{print $1;}'", stdout=subprocess.PIPE, shell=True)
     activeJobs = currentJobs.communicate()[0].split()
@@ -270,10 +273,10 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
             k = iStruct
             if iStruct in interactionsz:
                 outerLocation = '/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/interactions/' + iStruct + '/'
-                minimum, index, localMinimumLocation, tempListAllEnergies, tempListAllConfigs = calculationStatus( outerLocation, name, activeJobs, minimum, index, localMinimumLocation, trajectoryLocation )
+                minimum, index, localMinimumLocation, tempListAllEnergies, tempListAllConfigs = calculationStatus( outerLocation, name, activeJobs, minimum, index, localMinimumLocation )
             if iStruct in interactionsi:
                 outerLocation = '/ihome/kjohnson/jpr54/orca/geometryOptimizations/interactions/' + iStruct + '/'
-                minimum, index, localMinimumLocation, appendEnergies, appendConfigs = calculationStatus( outerLocation, name, activeJobs, minimum, index, localMinimumLocation, trajectoryLocation )
+                minimum, index, localMinimumLocation, appendEnergies, appendConfigs = calculationStatus( outerLocation, name, activeJobs, minimum, index, localMinimumLocation )
                 tempListAllEnergies = tempListAllEnergies + appendEnergies
                 tempListAllConfigs = tempListAllConfigs + appendConfigs
             d2[k].append(minimum)
