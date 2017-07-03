@@ -154,10 +154,10 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
     activeJobs = currentJobs.communicate()[0].split()
     #identify all the energies of the single molecules from ihome and zfs
     sStructures = subprocess.Popen('ls', stdout=subprocess.PIPE, cwd='/ihome/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/')
-    sStructures2 = subprocess.Popen('ls', stdout=subprocess.PIPE, cwd='/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/')
+    #sStructures2 = subprocess.Popen('ls', stdout=subprocess.PIPE, cwd='/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/')
     singleMolecules1 = sStructures.communicate()[0].split()
-    singleMolecules2 = sStructures2.communicate()[0].split()
-    singleMolecules = singleMolecules1 + singleMolecules2
+    #singleMolecules2 = sStructures2.communicate()[0].split()
+    singleMolecules = singleMolecules1 #+ singleMolecules2
     d = defaultdict(list)
     #create array to hold energies of single molecules.
     #get the energies of all the single molecules, store them in the dictionary in position corresponding to name
@@ -166,8 +166,8 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
             k = structure.lower()
             if structure in singleMolecules1:
                 location = '/ihome/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/' + structure + '/'
-            elif structure in singleMolecules2:
-                location = '/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/' + structure + '/'
+            #elif structure in singleMolecules2:
+                #location = '/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/' + structure + '/'
             files = subprocess.Popen('ls', stdout=subprocess.PIPE, cwd=location)
             fileNames = files.communicate()[0].split()
             #next line will only show calculations that have finished running:
@@ -228,12 +228,11 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     getEnergy = subprocess.Popen('grep "FINAL SINGLE POINT ENERGY" geometryOptimizationOrca.out | tail -n 1', stdout=subprocess.PIPE, cwd=location, shell=True)
                     v = Decimal(getEnergy.communicate()[0].split()[4])
                     d[k].append(v)
-                    #it is safe to move this directory to zfs now, if it is not in zfs already.
-                    if 'zfs' not in location:
-                        try:
-                            subprocess.Popen('bash -c "mv {0}/{1}/ /zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/"'.format(location.rsplit('/',2)[0],structure.replace("'","\\'")), cwd=location.rsplit('/',2)[0]+'/', shell=True)
-                        except:
-                            print('Trouble moving {0}\n'.format(location))
+                    #if 'zfs' not in location:
+                        #try:
+                            #subprocess.Popen('bash -c "mv {0}/{1}/ /zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/"'.format(location.rsplit('/',2)[0],structure.replace("'","\\'")), cwd=location.rsplit('/',2)[0]+'/', shell=True)
+                        #except:
+                            #print('Trouble moving {0}\n'.format(location))
                 elif "ORCA_GSTEP" in str(lambdaFlag):
                     ignore = 1
                     print('Gstep error in calculation {0}\n'.format(location))
