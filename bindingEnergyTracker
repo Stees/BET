@@ -321,10 +321,10 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     except:
                         print('\nNo data for {0} yet.\n'.format(singleMols))
             elif (filter == 2):
-                dataList = []
                 agent = 'apple'
                 flag = 0
                 while (agent != 'owl'):
+                    dataList = []
                     if (agent != 'apple'):
                         if (agent == 'more'):
                             print('\nJust one second...\n')
@@ -366,10 +366,10 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                                 agent = 'owl'
             elif (filter == 3):
                 #print all binding energies for a specified molecule
-                dataList = []
                 agent = 'apple'
                 flag = 0
                 while (agent != 'owl'):
+                    dataList = []
                     pairArrayPre = []
                     pairArray = []
                     if (agent != 'apple'):
