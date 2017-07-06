@@ -10,6 +10,7 @@ from decimal import *
 import numpy as np
 import time
 import os
+import operator
 
 #set decimal context
 getcontext().prec = 14
@@ -320,6 +321,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     except:
                         print('\nNo data for {0} yet.\n'.format(singleMols))
             elif (filter == 2):
+                dataList = []
                 agent = 'apple'
                 flag = 0
                 while (agent != 'owl'):
@@ -338,12 +340,17 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                             energy2 = d.get(singleMols[1].lower())
                             try:
                                 interE = d2.get(key)
-                                print('\n{0:40}\tconfiguration #{1} out of {2} converged.'.format(singleMols,interE[1].replace("/",""),interE[2]))
                                 #2625.5 is conversion factor between hartree and kJ/mol
                                 bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
-                                print('{0} kJ/mol'.format(bindingEnergy))
+                                tempList = [key, bindingEnergy, interE[1].replace("/",""), interE[2]]
+                                dataList.append(tempList)
                             except:
                                 print('\nNo data for {0} yet.'.format(singleMols))
+                    #sort dataList and print it
+                    dataListFinal = sorted(dataList, key=operator.itemgetter(1))
+                    for row in range(0,len(dataListFinal)):
+                        print('\n{0:40}\tconfiguration #{1} out of {2} converged.'.format(dataListFinal[row][0],dataListFinal[row][2],dataListFinal[row][3]))
+                        print('{0} kJ/mol'.format(dataListFinal[row][1]))
                     if (flag == 1):
                         repeat = 's'
                         while (repeat != 'y' and repeat != 'n'):
@@ -359,9 +366,11 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                                 agent = 'owl'
             elif (filter == 3):
                 #print all binding energies for a specified molecule
+                dataList = []
                 agent = 'apple'
                 flag = 0
                 while (agent != 'owl'):
+                    pairArrayPre = []
                     pairArray = []
                     if (agent != 'apple'):
                         if (agent == 'more'):
@@ -370,9 +379,11 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                         else:
                             print('\nLikely invalid entry. Try again.')
                     print('\nInteraction Pairs:')
-                    for counter, key in enumerate(d2):
-                        print('{0}: {1}'.format(counter,key))
-                        pairArray.append(key)
+                    for key in d2:
+                        pairArrayPre.append(key)
+                    pairArray = sorted(pairArrayPre, key=str.lower)
+                    for counter, mols in enumerate(pairArray):
+                        print('{0}: {1}'.format(counter,mols))
                     pairs = raw_input('\nEnter the numbers corresponding to interaction pairs you desire.\nInvalid entries will be ignored, and calculations without results yet will print the pair name with no energies.\n')
                     if not pairs:
                         print('\nEnter a value.\n')
@@ -389,7 +400,11 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                             interE = d3.get(pairArray[pair])
                             for j, step in enumerate(interE[0]):
                                 bindingEnergy = Decimal(2625.5)*(step - (energy1[0] + energy2[0]))
-                                print('configuration {0}:\t{1} kJ/mol\n'.format(interE[1][j].replace("/",""), bindingEnergy))
+                                tempList = [interE[1][j].replace("/",""), bindingEnergy]
+                                dataList.append(tempList)
+                    dataListFinal = sorted(dataList, key=operator.itemgetter(1))
+                    for row in range(0,len(dataListFinal)):
+                        print('configuration {0}:\t{1} kJ/mol\n'.format(dataListFinal[row][0],dataListFinal[row][1]))
                     print('{0} total converged configurations.\n'.format(interE[2]))
                     if (flag == 1):
                         repeat = 's'
