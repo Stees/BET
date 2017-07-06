@@ -314,7 +314,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     energy2 = d.get(singleMols[1].lower())
                     try:
                         interE = d2.get(key)
-                        print('\n{0:40}\tconfiguration #{1} out of {2} converged.'.format(singleMols,interE[1].replace("/",""),interE[2]))
+                        print('\n{0:40}\tconfiguration {1} out of {2} converged.'.format(singleMols,interE[1].replace("/",""),interE[2]))
                         #2625.5 is conversion factor between hartree and kJ/mol
                         bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
                         print('{0} kJ/mol'.format(bindingEnergy))
@@ -349,7 +349,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     #sort dataList and print it
                     dataListFinal = sorted(dataList, key=operator.itemgetter(1))
                     for row in range(0,len(dataListFinal)):
-                        print('\n{0:40}\tconfiguration #{1} out of {2} converged.'.format(dataListFinal[row][0],dataListFinal[row][2],dataListFinal[row][3]))
+                        print('\n{0:40}\tconfiguration {1} out of {2} converged.'.format(dataListFinal[row][0],dataListFinal[row][2],dataListFinal[row][3]))
                         print('{0} kJ/mol'.format(dataListFinal[row][1]))
                     if (flag == 1):
                         repeat = 's'
