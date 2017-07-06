@@ -24,7 +24,7 @@ host = getHost.communicate()[0].split()[0]
 
 
 if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
-    def calculationStatus( oLocation, uName, aJobs, Minimum, Index, localMinLocation ):
+    def calculationStatus( oLocation, uName, aJobs, Minimum, Index, localMinLocation, goodOpts ):
         tempListEnergies = []
         tempListConfigs = []
         #ls the number directories for each interaction pair
@@ -32,13 +32,13 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
         numbers = nums.communicate()[0].split()
         #find the mimimum and corresponding index for each calculation
         if 'ls:' == numbers[0]:
-            return(Minimum,Index,localMinLocation,tempListEnergies,tempListConfigs)
+            return(Minimum,Index,localMinLocation,tempListEnergies,tempListConfigs,goodOpts)
         for number in numbers:
             innerLocation = oLocation + str(number)
             files2 = subprocess.Popen('ls', stdout=subprocess.PIPE, cwd=innerLocation)
             fileNames2 = files2.communicate()[0].split()
             if "geometryOptimizationOrca.out" in fileNames2:
-                additionalCycles2 = subprocess.Popen('grep "The optimization did not converge but reached the maximum number of" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
+                additionalCycles2 = subprocess.Popen('grep "The optimization did not converge but reached the" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                 cycleFlag2 = additionalCycles2.communicate()[0]
                 calcSuccess2 = subprocess.Popen('grep "OPTIMIZATION RUN DONE" geometryOptimizationOrca.out', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                 calcFlag2 = calcSuccess2.communicate()[0]
@@ -85,6 +85,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     v = Decimal(getEnergy.communicate()[0].split()[4])
                     tempListEnergies.append(v)
                     tempListConfigs.append(number)
+                    goodOpts = goodOpts + 1
                     if v < Minimum:
                         Minimum = v
                         Index = number
@@ -117,7 +118,6 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     getNumber = subprocess.Popen('cat JobId', stdout=subprocess.PIPE, cwd=innerLocation, shell=True)
                     tempNumber = getNumber.communicate()[0]
                     if tempNumber not in aJobs:
-                        
                         #check to make sure the calculation files are not empty.
                         if os.path.getsize(innerLocation+'job.slurm') == 0:
                             print('\nCalculation files are empty: {0}'.format(innerLocation))
@@ -142,7 +142,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     copyConfiguration = subprocess.Popen('cp -f geometryOptimizationOrca.xyz {0}'.format(configurationMoveLocation), cwd=localMinLocation, shell=True)
                 except:
                     time.sleep(0)
-        return(Minimum,Index,localMinLocation,tempListEnergies,tempListConfigs)
+        return(Minimum,Index,localMinLocation,tempListEnergies,tempListConfigs,goodOpts)
 
 
 
@@ -268,20 +268,23 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
             appendConfigs = []
             minimum = 0
             index = 0
+            optSuccess = 0
             localMinimumLocation = ''
             k = iStruct
             if iStruct in interactionsz:
                 outerLocation = '/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/interactions/' + iStruct + '/'
-                minimum, index, localMinimumLocation, tempListAllEnergies, tempListAllConfigs = calculationStatus( outerLocation, name, activeJobs, minimum, index, localMinimumLocation )
+                minimum, index, localMinimumLocation, tempListAllEnergies, tempListAllConfigs, optSuccess = calculationStatus( outerLocation, name, activeJobs, minimum, index, localMinimumLocation, optSuccess )
             if iStruct in interactionsi:
                 outerLocation = '/ihome/kjohnson/jpr54/orca/geometryOptimizations/interactions/' + iStruct + '/'
-                minimum, index, localMinimumLocation, appendEnergies, appendConfigs = calculationStatus( outerLocation, name, activeJobs, minimum, index, localMinimumLocation )
+                minimum, index, localMinimumLocation, appendEnergies, appendConfigs, optSuccess = calculationStatus( outerLocation, name, activeJobs, minimum, index, localMinimumLocation, optSuccess )
                 tempListAllEnergies = tempListAllEnergies + appendEnergies
                 tempListAllConfigs = tempListAllConfigs + appendConfigs
             d2[k].append(minimum)
             d2[k].append(index)
+            d2[k].append(optSuccess)
             d3[k].append(tempListAllEnergies)
             d3[k].append(tempListAllConfigs)
+            d3[k].append(optSuccess)
 
 
 #***************************Part 3************************************
@@ -310,7 +313,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     energy2 = d.get(singleMols[1].lower())
                     try:
                         interE = d2.get(key)
-                        print('\n{0}, configuration {1}'.format(singleMols,interE[1].replace("/","")))
+                        print('\n{0:40}\tconfiguration #{1} out of {2} converged.'.format(singleMols,interE[1].replace("/",""),interE[2]))
                         #2625.5 is conversion factor between hartree and kJ/mol
                         bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
                         print('{0} kJ/mol'.format(bindingEnergy))
@@ -335,7 +338,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                             energy2 = d.get(singleMols[1].lower())
                             try:
                                 interE = d2.get(key)
-                                print('\n{0}, configuration {1}'.format(singleMols,interE[1].replace("/","")))
+                                print('\n{0:40}\tconfiguration #{1} out of {2} converged.'.format(singleMols,interE[1].replace("/",""),interE[2]))
                                 #2625.5 is conversion factor between hartree and kJ/mol
                                 bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
                                 print('{0} kJ/mol'.format(bindingEnergy))
@@ -386,7 +389,8 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                             interE = d3.get(pairArray[pair])
                             for j, step in enumerate(interE[0]):
                                 bindingEnergy = Decimal(2625.5)*(step - (energy1[0] + energy2[0]))
-                                print('configuration {0}: {1} kJ/mol\n'.format(interE[1][j].replace("/",""), bindingEnergy))
+                                print('configuration {0}:\t{1} kJ/mol\n'.format(interE[1][j].replace("/",""), bindingEnergy))
+                    print('{0} total converged configurations.\n'.format(interE[2]))
                     if (flag == 1):
                         repeat = 's'
                         while (repeat != 'y' and repeat != 'n'):
