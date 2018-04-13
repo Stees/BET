@@ -94,7 +94,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     #move the calculation to zfs
                     if 'zfs' not in innerLocation:
                         try:
-                            subprocess.Popen('bash -c "mv {0} /zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/interactions/{1}/"'.format(innerLocation, iStruct), shell=True)
+                            subprocess.Popen('bash -c "mv {0} /zfs1/kjohnson/jpr54/orca/geometryOptimizations/interactions/{1}/"'.format(innerLocation, iStruct), shell=True)
                         except:
                             print('Trouble moving {0} to zfs.\n'.format(innerLocation))
                 elif "ORCA_GSTEP" in lambdaFlag2 or "PROBLEM IN SOSCF" in stepFlag:
@@ -102,7 +102,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     #This should be moved to zfs. It is not useful data.
                     if 'zfs' not in innerLocation:
                         try:
-                            subprocess.Popen('bash -c "mv {0} /zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/interactions/{1}/"'.format(innerLocation, iStruct), shell=True)
+                            subprocess.Popen('bash -c "mv {0} /zfs1/kjohnson/jpr54/orca/geometryOptimizations/interactions/{1}/"'.format(innerLocation, iStruct), shell=True)
                         except:
                             print('Trouble moving {0} to zfs.\n'.format(innerLocation))
                 else:
@@ -148,14 +148,14 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
 
 
 #*********************Part1******************************************
-    trajectoryLocation = '/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/bestInteractionTrajectories/'
-    finalConfigurationLocation = '/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/finalConfigurations/'
+    trajectoryLocation = '/zfs1/kjohnson/jpr54/orca/geometryOptimizations/bestInteractionTrajectories/'
+    finalConfigurationLocation = '/zfs1/kjohnson/jpr54/orca/geometryOptimizations/finalConfigurations/'
     #figure out what is in the queue
     currentJobs = subprocess.Popen("squeue -u $USER -o '%7i%24j%8u' | grep 'jpr54' | awk '{print $1;}'", stdout=subprocess.PIPE, shell=True)
     activeJobs = currentJobs.communicate()[0].split()
     #identify all the energies of the single molecules from ihome and zfs
     sStructures = subprocess.Popen('ls', stdout=subprocess.PIPE, cwd='/ihome/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/')
-    #sStructures2 = subprocess.Popen('ls', stdout=subprocess.PIPE, cwd='/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/')
+    #sStructures2 = subprocess.Popen('ls', stdout=subprocess.PIPE, cwd='/zfs1/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/')
     singleMolecules1 = sStructures.communicate()[0].split()
     #singleMolecules2 = sStructures2.communicate()[0].split()
     singleMolecules = singleMolecules1 #+ singleMolecules2
@@ -168,7 +168,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
             if structure in singleMolecules1:
                 location = '/ihome/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/' + structure + '/'
             #elif structure in singleMolecules2:
-                #location = '/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/' + structure + '/'
+                #location = '/zfs1/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/' + structure + '/'
             files = subprocess.Popen('ls', stdout=subprocess.PIPE, cwd=location)
             fileNames = files.communicate()[0].split()
             #next line will only show calculations that have finished running:
@@ -231,7 +231,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     d[k].append(v)
                     #if 'zfs' not in location:
                         #try:
-                            #subprocess.Popen('bash -c "mv {0}/{1}/ /zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/"'.format(location.rsplit('/',2)[0],structure.replace("'","\\'")), cwd=location.rsplit('/',2)[0]+'/', shell=True)
+                            #subprocess.Popen('bash -c "mv {0}/{1}/ /zfs1/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/"'.format(location.rsplit('/',2)[0],structure.replace("'","\\'")), cwd=location.rsplit('/',2)[0]+'/', shell=True)
                         #except:
                             #print('Trouble moving {0}\n'.format(location))
                 elif "ORCA_GSTEP" in str(lambdaFlag):
@@ -248,14 +248,14 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
 #***************************Part 2***************************
     #get the names of the interaction configurations
     iStructures = subprocess.Popen(r'ls *_* -d', stdout=subprocess.PIPE, cwd='/ihome/kjohnson/jpr54/orca/geometryOptimizations/interactions/', shell=True)
-    zStructures = subprocess.Popen(r'ls *_* -d', stdout=subprocess.PIPE, cwd='/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/interactions/', shell=True)
+    zStructures = subprocess.Popen(r'ls *_* -d', stdout=subprocess.PIPE, cwd='/zfs1/kjohnson/jpr54/orca/geometryOptimizations/interactions/', shell=True)
     interactionsi = iStructures.communicate()[0].split()
     interactionsz = zStructures.communicate()[0].split()
     interactions = interactionsi + interactionsz
     #make sure there are mirroring directories for everything on ihome on zfs
     for pair in interactionsi:
         if pair not in interactionsz:
-            subprocess.Popen('mkdir /zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/interactions/{0}'.format(pair), shell=True)
+            subprocess.Popen('mkdir /zfs1/kjohnson/jpr54/orca/geometryOptimizations/interactions/{0}'.format(pair), shell=True)
     time.sleep(0.25)
     #make another dictionary for the interaction calculation energies
     d2 = defaultdict(list)
@@ -273,7 +273,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
             localMinimumLocation = ''
             k = iStruct
             if iStruct in interactionsz:
-                outerLocation = '/zfs1/2/kjohnson/jpr54/orca/geometryOptimizations/interactions/' + iStruct + '/'
+                outerLocation = '/zfs1/kjohnson/jpr54/orca/geometryOptimizations/interactions/' + iStruct + '/'
                 minimum, index, localMinimumLocation, tempListAllEnergies, tempListAllConfigs, optSuccess = calculationStatus( outerLocation, name, activeJobs, minimum, index, localMinimumLocation, optSuccess )
             if iStruct in interactionsi:
                 outerLocation = '/ihome/kjohnson/jpr54/orca/geometryOptimizations/interactions/' + iStruct + '/'
@@ -314,7 +314,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     energy2 = d.get(singleMols[1].lower())
                     try:
                         interE = d2.get(key)
-                        print('\n{0:40}\tconfiguration {1} out of {2} converged.'.format(singleMols,interE[1].replace("/",""),interE[2]))
+                        print('\n{0:40}\tconfiguration {1} out of {2} converged.'.format(key,interE[1].replace("/",""),interE[2]))
                         #2625.5 is conversion factor between hartree and kJ/mol
                         bindingEnergy = Decimal(2625.5)*(interE[0] - (energy1[0] + energy2[0]))
                         print('{0} kJ/mol'.format(bindingEnergy))
@@ -375,7 +375,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     if (agent != 'apple'):
                         if (agent == 'more'):
                             print('\nJust one second...\n')
-                            time.sleep(0.55)
+                            time.sleep(0.50)
                         else:
                             print('\nLikely invalid entry. Try again.')
                     print('\nInteraction Pairs:')
@@ -384,15 +384,15 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
                     pairArray = sorted(pairArrayPre, key=str.lower)
                     for counter, mols in enumerate(pairArray):
                         print('{0}: {1}'.format(counter,mols))
-                    pairs = raw_input('\nEnter the numbers corresponding to interaction pairs you desire.\nInvalid entries will be ignored, and calculations without results yet will print the pair name with no energies.\n')
+                    pairs = raw_input('\nEnter the numbers corresponding to interaction pairs for which you need data.\nInvalid entries will be ignored, and calculations without results yet will print the pair name with no energies.\n')
                     if not pairs:
                         print('\nEnter a value.\n')
-                        time.sleep(0.75)
+                        time.sleep(0.10)
                     pairList = np.unique(np.array([int(s) for s in pairs.split() if s.isdigit()]))
                     for pair in pairList:
                         if (pair <= counter):
                             print('\n{0}'.format(pairArray[pair]))
-                            time.sleep(0.75)
+                            time.sleep(0.10)
                             flag = 1
                             singleMols = pairArray[pair].split("_")
                             energy1 = d.get(singleMols[0].lower())
