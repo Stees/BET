@@ -151,7 +151,7 @@ if 'login0.crc.pitt.edu' in host and 'ihome' in fs:
     trajectoryLocation = '/zfs1/kjohnson/jpr54/orca/geometryOptimizations/bestInteractionTrajectories/'
     finalConfigurationLocation = '/zfs1/kjohnson/jpr54/orca/geometryOptimizations/finalConfigurations/'
     #figure out what is in the queue
-    currentJobs = subprocess.Popen("squeue -u $USER -o '%7i%24j%8u' | grep 'jpr54' | awk '{print $1;}'", stdout=subprocess.PIPE, shell=True)
+    currentJobs = subprocess.Popen("squeue -u $USER -o '%14i%24j%8u' | grep 'jpr54' | awk '{print $1;}'", stdout=subprocess.PIPE, shell=True)
     activeJobs = currentJobs.communicate()[0].split()
     #identify all the energies of the single molecules from ihome and zfs
     sStructures = subprocess.Popen('ls', stdout=subprocess.PIPE, cwd='/ihome/kjohnson/jpr54/orca/geometryOptimizations/singleMolecules/')
